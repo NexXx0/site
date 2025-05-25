@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta CPF ou Nome</title>
+  <style>
+    body { font-family: 'Courier New', monospace; background-color: #0f0f0f; color: #00ff00; margin: 0; }
+    header { background: #111; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 1.2rem; }
+    nav { position: relative; }
+    .menu-btn { background: none; border: none; color: #00ff00; font-size: 1rem; cursor: pointer; }
+    .menu { display: none; position: absolute; right: 0; background: #1a1a1a; border: 1px solid #00ff00; border-radius: 5px; overflow: hidden; }
+    .menu a { display: block; padding: 10px; color: #00ff00; text-decoration: none; }
+    .menu a:hover { background: #00ff00; color: #000; }
+    .container { max-width: 700px; margin: 20px auto; background-color: #1a1a1a; padding: 30px; border-radius: 10px; box-shadow: 0 0 20px #00ff00; }
+    input, button { font-family: 'Courier New', monospace; }
+    input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #00ff00; border-radius: 5px; background-color: #000; color: #00ff00; }
+    button { width: 100%; padding: 12px; background-color: #000; border: 1px solid #00ff00; color: #00ff00; font-weight: bold; border-radius: 5px; cursor: pointer; transition: background 0.3s; }
+    button:hover { background-color: #00ff00; color: #000; }
+    #resultado, #advResultado, #adminLog, #adminUsers { margin-top: 20px; white-space: pre-wrap; background-color: #000; color: #00ff00; padding: 20px; border: 1px solid #00ff00; border-radius: 5px; min-height: 100px; }
+    #login, #register, #advancedUnlock, #advancedSection, #adminSection { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔍 Consulta Hacker</h1>
+    <nav>
+      <button class="menu-btn" onclick="toggleMenu()">MENU</button>
+      <div class="menu" id="menu">
+        <a href="#" onclick="showSection('container')">Busca Superficial</a>
+        <a href="#" onclick="showSection('advancedUnlock')">Busca Avançada</a>
+        <a href="#" onclick="showSection('register')">Registro</a>
+        <a href="#" onclick="showSection('login')">Login</a>
+        <a href="#" id="adminMenu" style="display:none;" onclick="showSection('adminSection')">Admin Logs</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Seções -->
+  <div class="container" id="container">
+    <h2>Consulta de CPF ou Nome</h2>
+    <input type="text" id="buscaInput" placeholder="Digite o CPF ou Nome">
+    <button onclick="buscar(false)">BUSCAR</button>
+    <div id="resultado"></div>
+  </div>
+
+  <div class="container" id="advancedUnlock">
+    <h2>Desbloquear Busca Avançada</h2>
+    <input type="password" id="advPass" placeholder="Digite sua senha de pacote">
+    <button onclick="unlockAdvanced()">DESBLOQUEAR</button>
+    <div id="advMsg"></div>
+  </div>
+
+  <div class="container" id="advancedSection">
+    <h2>🔒 Busca Avançada Ativada</h2>
+    <input type="text" id="advInput" placeholder="Digite CPF ou Nome">
+    <button onclick="buscar(true)">BUSCAR AVANÇADO</button>
+    <div id="advResultado"></div>
+  </div>
+
+  <div class="container" id="register">
+    <h2>Registro de Conta</h2>
+    <input type="email" id="regEmail" placeholder="Email">
+    <input type="password" id="regPass" placeholder="Senha">
+    <button onclick="register()">CRIAR CONTA</button>
+    <div id="regMsg"></div>
+  </div>
+
+  <div class="container" id="login">
+    <h2>Login</h2>
+    <input type="text" id="logName" placeholder="Nome">
+    <input type="email" id="logEmail" placeholder="Email">
+    <input type="password" id="logPass" placeholder="Senha">
+    <button onclick="login()">LOGIN</button>
+    <div id="logMsg"></div>
+  </div>
+
+  <div class="container" id="adminSection">
+    <h2>🛠️ Admin - Dados de Uso</h2>
+    <h3>Logs de Buscas Não Encontradas</h3>
+    <div id="adminLog"></div>
+    <h3>Usuários Online</h3>
+    <div id="adminUsers"></div>
+  </div>
+
+  <script>
+    // Configurações
+    const developerLogKey = 'notFoundLog';
+    const activeUsersKey = 'activeUsers';
+    const adminEmail = 'theus.desbrava@gmail.com';
+    const adminPass = '1128930232';
+    let advancedUnlocked = false;
+
+    // Funções de navegação
+    function toggleMenu() {
+      const menu = document.getElementById('menu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+    function showSection(id) {
+      ['container','advancedUnlock','advancedSection','register','login','adminSection'].forEach(sec => {
+        document.getElementById(sec).style.display = (sec === id ? 'block' : 'none');
+      });
+      document.getElementById('menu').style.display = 'none';
+      if (id === 'adminSection') loadAdminLogs();
+    }
+
+    // Registro de usuários
+    function register() {
+      const email = document.getElementById('regEmail').value;
+      const pass = document.getElementById('regPass').value;
+      if (!email || !pass) { document.getElementById('regMsg').innerText = 'Preencha email e senha.'; return; }
+      localStorage.setItem('user_' + email, pass);
+      document.getElementById('regMsg').innerText = 'Conta criada! Faça login.';
+      showSection('login');
+    }
+
+    // Login usuário ou admin
+    function login() {
+      const name = document.getElementById('logName').value;
+      const email = document.getElementById('logEmail').value;
+      const pass = document.getElementById('logPass').value;
+      const msg = document.getElementById('logMsg');
+      if (email === adminEmail && pass === adminPass) {
+        msg.innerText = 'Login admin bem-sucedido!';
+        document.getElementById('adminMenu').style.display = 'block';
+        showSection('adminSection');
+        return;
+      }
+      if (!name) { msg.innerText = 'Informe seu nome.'; return; }
+      if (localStorage.getItem('user_' + email) === pass) {
+        msg.innerText = 'Login bem-sucedido!';
+        const users = JSON.parse(localStorage.getItem(activeUsersKey) || '[]');
+        users.push({ name, email, date: new Date().toISOString() });
+        localStorage.setItem(activeUsersKey, JSON.stringify(users));
+        showSection('container');
+      } else {
+        msg.innerText = 'Credenciais inválidas.';
+      }
+    }
+
+    // Desbloquear busca avançada
+    function unlockAdvanced() {
+      const code = document.getElementById('advPass').value;
+      if (code.length === 5) {
+        advancedUnlocked = true;
+        document.getElementById('advMsg').innerText = 'Busca avançada desbloqueada.';
+        showSection('advancedSection');
+      } else {
+        document.getElementById('advMsg').innerText = 'Senha inválida.';
+      }
+    }
+
+    // Função de busca
+    async function buscar(isAdvanced) {
+      const input = isAdvanced ? 'advInput' : 'buscaInput';
+      const output = isAdvanced ? 'advResultado' : 'resultado';
+      const termo = document.getElementById(input).value.trim();
+      const div = document.getElementById(output);
+      if (!termo) { div.innerText = '❌ Não foi informado nenhum CPF ou nome.'; return; }
+      const cpf = termo.replace(/\D/g, '');
+      const isCPF = cpf.length >= 11;
+      const texto = await (await fetch('dados.txt')).text();
+      const blocos = texto.split(/\n(?=• RESULTADO)/);
+      let resultados = [];
+      if (isCPF) {
+        resultados = blocos.filter(b => b.replace(/[^0-9]/g, '').includes(cpf));
+      } else {
+        resultados = blocos.filter(b => {
+          const nomeLine = b.split('\n').find(l => l.includes('NOME:')) || '';
+          return nomeLine.toLowerCase().includes(termo.toLowerCase());
+        });
+      }
+      resultados = resultados.map(b =>
+        b.split('\n').filter(l => /NOME:|CPF\/CNPJ:|SEXO:|NASCIMENTO:|MÃE:/.test(l)).join('\n')
+      );
+      if (resultados.length) {
+        div.innerText = resultados.join('\n\n');
+      } else {
+        div.innerText = '❌ Nenhum resultado encontrado para este termo.';
+        // Notifica backend Python
+        fetch('http://localhost:5000/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ term: termo, type: isCPF ? 'cpf' : 'nome' })
+        }).catch(err => console.error('Erro notifier:', err));
+        // Armazena no log local
+        const log = JSON.parse(localStorage.getItem(developerLogKey) || '[]');
+        log.push({ term: termo, date: new Date().toISOString() });
+        localStorage.setItem(developerLogKey, JSON.stringify(log));
+      }
+    }
+
+    // Carregar logs admin
+    function loadAdminLogs() {
+      const logs = JSON.parse(localStorage.getItem(developerLogKey) || '[]');
+      document.getElementById('adminLog').innerText = logs.length ? logs.map(e => `${e.date} - ${e.term}`).join('\n') : 'Nenhum log registrado.';
+      const users = JSON.parse(localStorage.getItem(activeUsersKey) || '[]');
+      document.getElementById('adminUsers').innerText = users.length ? `Online: ${users.length}\n` + users.map(u => `${u.date} - ${u.name} <${u.email}>`).join('\n') : 'Nenhum usuário online.';
+    }
+  </script>
+</body>
+</html>
+
+
